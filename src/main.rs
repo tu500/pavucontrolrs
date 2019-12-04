@@ -65,7 +65,7 @@ impl SinkInputEntry {
             name = format!("{} [{}]", name, app_name);
         }
 
-        // if Some("firefox") == self.proplist.get_str("application.process.binary") {
+        // if Some("firefox") == self.proplist.get_str("application.process.binary").as_ref().map(|x| &x[..]) {
         //         name = format!("{} [{}]", self.name, "firefox");
         // }
         if let Some(bin_name) = self.proplist.get_str("application.process.binary") {
@@ -76,15 +76,6 @@ impl SinkInputEntry {
         return name;
     }
 }
-
-// impl Default for SinkInputEntry {
-//     fn default() -> SinkInputEntry {
-//         SinkInputEntry {
-//             proplist: pulse::proplist::Proplist::new().unwrap(),
-//             ..Default::default()
-//         }
-//     }
-// }
 
 impl From<&introspect::SinkInputInfo<'_>> for SinkInputEntry {
     fn from(entry: &introspect::SinkInputInfo) -> SinkInputEntry {
