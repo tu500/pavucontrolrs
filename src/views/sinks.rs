@@ -1,6 +1,6 @@
 use termion::event::Key;
 use tui::backend::TermionBackend;
-use tui::layout::{Constraint, Direction, Layout};
+use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
 use tui::widgets::{Block, Borders, Gauge, Widget};
 use tui::Terminal;
@@ -13,49 +13,46 @@ use pulse::def::SinkState;
 
 use crate::App;
 
-pub fn draw<T: tui::backend::Backend>(terminal: &mut tui::Terminal<T>, app: &mut App) {
-    let _ = terminal.draw(|mut f| {
+pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
 
-        let mut constraints = vec![Constraint::Length(3); app.sink_list.len()];
-        constraints.push(Constraint::Min(0));
+    let mut constraints = vec![Constraint::Length(3); app.sink_list.len()];
+    constraints.push(Constraint::Min(0));
 
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .margin(2)
-            .constraints(constraints)
-            .split(f.size());
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(constraints)
+        .split(rect);
 
-        for (i, sink) in app.sink_list.values().enumerate() {
-            // let volume_ratio = VolumeLinear::from(sink.volume.avg()).0;
-            let vol = sink.volume.avg();
-            let volume_ratio = vol.0 as f64 / pulse::volume::VOLUME_NORM.0 as f64;
-            let mut label = format!("{:.0}%", volume_ratio * 100f64);
-            if sink.mute {
-                label += " (muted)";
-            }
-
-            let title = format!(" {} ", sink.display_name());
-
-            let invalid = sink.mute || sink.state == SinkState::Suspended;
-
-            let color = if sink.index == app.sink_list.get_selected().expect("No selected entry while drawing").index {
-                if invalid { Color::Gray } else { Color::Green }
-            } else if invalid {
-                Color::DarkGray
-            } else if sink.state == SinkState::Idle {
-                Color::Red
-            } else {
-                Color::Yellow
-            };
-
-            Gauge::default()
-                .block(Block::default().title(&title).borders(Borders::ALL))
-                .style(Style::default().fg(color))
-                .ratio(volume_ratio.min(1.0))
-                .label(&label)
-                .render(&mut f, chunks[i]);
+    for (i, sink) in app.sink_list.values().enumerate() {
+        // let volume_ratio = VolumeLinear::from(sink.volume.avg()).0;
+        let vol = sink.volume.avg();
+        let volume_ratio = vol.0 as f64 / pulse::volume::VOLUME_NORM.0 as f64;
+        let mut label = format!("{:.0}%", volume_ratio * 100f64);
+        if sink.mute {
+            label += " (muted)";
         }
-    });
+
+        let title = format!(" {} ", sink.display_name());
+
+        let invalid = sink.mute || sink.state == SinkState::Suspended;
+
+        let color = if sink.index == app.sink_list.get_selected().expect("No selected entry while drawing").index {
+            if invalid { Color::Gray } else { Color::Green }
+        } else if invalid {
+            Color::DarkGray
+        } else if sink.state == SinkState::Idle {
+            Color::Red
+        } else {
+            Color::Yellow
+        };
+
+        Gauge::default()
+            .block(Block::default().title(&title).borders(Borders::ALL))
+            .style(Style::default().fg(color))
+            .ratio(volume_ratio.min(1.0))
+            .label(&label)
+            .render(frame, chunks[i]);
+        }
 }
 
 pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {

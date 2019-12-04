@@ -1,6 +1,6 @@
 use termion::event::Key;
 use tui::backend::TermionBackend;
-use tui::layout::{Constraint, Direction, Layout};
+use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
 use tui::widgets::{Block, Borders, Gauge, Widget, Text, Paragraph, SelectableList};
 use tui::Terminal;
@@ -11,68 +11,65 @@ use std::sync::{Arc, Mutex};
 
 use crate::App;
 
-pub fn draw<T: tui::backend::Backend>(terminal: &mut tui::Terminal<T>, app: &mut App) {
-    let _ = terminal.draw(|mut f| {
+pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
 
-        let mut constraints: Vec<tui::layout::Constraint> = app.card_list.values().map(|card| Constraint::Length(2 + card.profiles.len() as u16)).collect();
-        constraints.push(Constraint::Min(0));
+    let mut constraints: Vec<tui::layout::Constraint> = app.card_list.values().map(|card| Constraint::Length(2 + card.profiles.len() as u16)).collect();
+    constraints.push(Constraint::Min(0));
 
-        let chunks = Layout::default()
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(constraints)
+        .split(rect);
+
+    for (i, card) in app.card_list.values().enumerate() {
+
+        let title = format!(" {} ", card.display_name());
+
+        let title_style = if card.index == app.card_list.get_selected().expect("No selected entry while drawing").index {
+            Style::default().fg(Color::Yellow)
+        } else {
+            Style::default()
+        };
+
+        let mut block = Block::default()
+            .title(&title)
+            .title_style(title_style)
+            .borders(Borders::ALL);
+        // .border_style(Style::default().fg(Color::White))
+        // .style(Style::default().bg(Color::Black))
+        block.render(frame, chunks[i]);
+
+        let list = Layout::default()
             .direction(Direction::Vertical)
-            .margin(2)
-            .constraints(constraints)
-            .split(f.size());
+            .constraints(vec![Constraint::Length(1); card.profiles.len()])
+            // .split(chunks[i]);
+            .split(block.inner(chunks[i]));
 
-        for (i, card) in app.card_list.values().enumerate() {
-
-            let title = format!(" {} ", card.display_name());
-
-            let title_style = if card.index == app.card_list.get_selected().expect("No selected entry while drawing").index {
-                Style::default().fg(Color::Yellow)
-            } else {
-                Style::default()
-            };
-
-            let mut block = Block::default()
-                .title(&title)
-                .title_style(title_style)
-                .borders(Borders::ALL);
-                // .border_style(Style::default().fg(Color::White))
-                // .style(Style::default().bg(Color::Black))
-            block.render(&mut f, chunks[i]);
-
-            let list = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints(vec![Constraint::Length(1); card.profiles.len()])
-                // .split(chunks[i]);
-                .split(block.inner(chunks[i]));
-
-            for (j, profile) in card.profiles.iter().enumerate() {
-                let mut style = Style::default();
-                if let Some(selected_index) = card.selected_profile_index {
-                    if selected_index == j {
-                        style = Style::default().fg(Color::Red)
-                    }
+        for (j, profile) in card.profiles.iter().enumerate() {
+            let mut style = Style::default();
+            if let Some(selected_index) = card.selected_profile_index {
+                if selected_index == j {
+                    style = Style::default().fg(Color::Red)
                 }
-                if let Some(active_index) = card.active_profile_index {
-                    if active_index == j {
-                        style = Style::default().fg(Color::Green)
-                    }
+            }
+            if let Some(active_index) = card.active_profile_index {
+                if active_index == j {
+                    style = Style::default().fg(Color::Green)
                 }
-                Paragraph::new([Text::raw(format!(" {}", profile.display_name()))].iter())
-                    .style(style)
-                    .render(&mut f, list[j]);
+            }
+            Paragraph::new([Text::raw(format!(" {}", profile.display_name()))].iter())
+                .style(style)
+                .render(frame, list[j]);
             }
 
-            // let profile_names: Vec<&str> = card.profiles.iter().map(|p| p.description.as_ref()).collect();
-            // SelectableList::default()
-            //     .items(&profile_names)
-            //     .select(card.selected_profile_index)
-            //     // .style(Style::default().fg(Color::Yellow))
-            //     .highlight_style(Style::default().fg(Color::Green).modifier(Modifier::ITALIC))
-            //     .render(&mut f, block.inner(chunks[i]));
-        }
-    });
+        // let profile_names: Vec<&str> = card.profiles.iter().map(|p| p.description.as_ref()).collect();
+        // SelectableList::default()
+        //     .items(&profile_names)
+        //     .select(card.selected_profile_index)
+        //     // .style(Style::default().fg(Color::Yellow))
+        //     .highlight_style(Style::default().fg(Color::Green).modifier(Modifier::ITALIC))
+        //     .render(&mut frame, block.inner(chunks[i]));
+    }
 }
 
 pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {

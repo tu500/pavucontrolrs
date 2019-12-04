@@ -7,7 +7,7 @@ use termion::input::TermRead;
 use tui::backend::TermionBackend;
 use tui::layout::{Constraint, Direction, Layout};
 use tui::style::{Color, Modifier, Style};
-use tui::widgets::{Block, Borders, Gauge, Widget};
+use tui::widgets::{Block, Borders, Gauge, Widget, Tabs};
 use tui::Terminal;
 
 use crate::{App, AppView};
@@ -42,11 +42,28 @@ pub fn draw_frame<T: tui::backend::Backend>(terminal: &mut tui::Terminal<T>, app
         return;
     }
 
-    match app.view {
-        AppView::SinkInputs    => views::sink_inputs::draw(terminal, app),
-        AppView::SourceOutputs => views::source_outputs::draw(terminal, app),
-        AppView::Sinks         => views::sinks::draw(terminal, app),
-        AppView::Sources       => views::sources::draw(terminal, app),
-        AppView::Cards         => views::cards::draw(terminal, app),
-    };
+    let _ = terminal.draw(|mut f| {
+
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .margin(1)
+            .constraints(vec![Constraint::Length(3), Constraint::Length(1), Constraint::Min(0)])
+            .split(f.size());
+
+        Tabs::default()
+            .block(Block::default().title(" Tabs ").borders(Borders::ALL))
+            .titles(&["Sink Inputs", "Source Output", "Sinks", "Sources", "Cards"])
+            .highlight_style(Style::default().fg(Color::Yellow))
+            .divider(tui::symbols::DOT)
+            .select(app.view as usize)
+            .render(&mut f, chunks[0]);
+
+        match app.view {
+            AppView::SinkInputs    => views::sink_inputs::draw(&mut f, chunks[2], app),
+            AppView::SourceOutputs => views::source_outputs::draw(&mut f, chunks[2], app),
+            AppView::Sinks         => views::sinks::draw(&mut f, chunks[2], app),
+            AppView::Sources       => views::sources::draw(&mut f, chunks[2], app),
+            AppView::Cards         => views::cards::draw(&mut f, chunks[2], app),
+        };
+    });
 }
