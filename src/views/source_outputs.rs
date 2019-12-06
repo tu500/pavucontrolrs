@@ -2,7 +2,7 @@ use termion::event::Key;
 use tui::backend::TermionBackend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
-use tui::widgets::{Block, Borders, Gauge, Widget};
+use tui::widgets::{Block, Borders, Gauge, Widget, Paragraph, Text};
 use tui::Terminal;
 
 use pulse::context::Context;
@@ -13,9 +13,23 @@ use crate::App;
 
 #[derive(Default)]
 pub struct ViewData {
+    source_popup_open: bool,
+    source_index_selected: u32,
+}
+
+impl ViewData {
+    pub fn open_popup(&mut self, entry: &crate::SourceOutputEntry) {
+        self.source_popup_open = true;
+        self.source_index_selected = entry.source_index;
+    }
+
+    pub fn close_popup(&mut self) {
+        self.source_popup_open = false;
+    }
 }
 
 pub fn entered(app: &mut App) {
+    app.source_output_view_data.close_popup();
 }
 
 pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
@@ -61,9 +75,55 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
             .label(&label)
             .render(frame, chunks[i]);
         }
+
+    if app.source_output_view_data.source_popup_open {
+        draw_source_popup(frame, rect, app);
+    }
+}
+
+pub fn draw_source_popup<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
+
+    let focused_stream = match app.source_output_list.get_selected() {
+        None => { app.source_output_view_data.close_popup(); return; },
+        Some(x) => x,
+    };
+
+    let rect = rect.inner(4);
+    crate::draw::ClearingWidget::default()
+        .render(frame, rect);
+
+    let mut block = Block::default().title(" Change Source ").borders(Borders::ALL);
+    block.render(frame, rect);
+
+    let list = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![Constraint::Length(1); app.source_list.len()])
+        .split(block.inner(rect));
+
+    for (j, source) in app.source_list.values().enumerate() {
+        let mut style = Style::default();
+        if app.source_output_view_data.source_index_selected == source.index {
+            style = Style::default().fg(Color::Red)
+        }
+        if focused_stream.source_index == source.index {
+            style = Style::default().fg(Color::Green)
+        }
+        Paragraph::new([Text::raw(format!(" {} ", source.display_name()))].iter())
+            .style(style)
+            .render(frame, list[j]);
+        }
 }
 
 pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
+
+    if app.source_output_view_data.source_popup_open {
+        handle_key_event_source_popup(key, app, context);
+    } else {
+        handle_key_event_main(key, app, context);
+    }
+}
+
+pub fn handle_key_event_main(key: Key, app: &mut App, context: &Context) {
 
     let source_list = &app.source_list; // XXX
     let hide_monitors = app.hide_monitors;
@@ -141,7 +201,48 @@ pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
                 new_vol.reset(new_vol.len() as u32);
                 context.introspect().set_source_output_volume(stream.index, &new_vol, None);
             }
+            Key::Char('\n') |
+            Key::Char('i') => {
+                app.source_output_view_data.open_popup(stream);
+                app.redraw = true;
+            }
             _ => {}
         }
+    }
+}
+
+pub fn handle_key_event_source_popup(key: Key, app: &mut App, context: &Context) {
+
+    let stream = match app.source_output_list.get_selected() {
+        Some(stream) => stream,
+        None => {
+            app.source_output_view_data.close_popup();
+            return;
+        }
+    };
+
+    match key {
+        Key::Esc => {
+            app.source_output_view_data.close_popup();
+            app.redraw = true;
+        }
+        Key::Char('\n') => {
+            context.introspect().move_source_output_by_index(stream.index, app.source_output_view_data.source_index_selected, None);
+            app.source_output_view_data.close_popup();
+            app.redraw = true;
+        }
+        Key::Char('j') => {
+            if let Some(k) = app.source_list.next_key(app.source_output_view_data.source_index_selected) {
+                app.source_output_view_data.source_index_selected = k;
+                app.redraw = true;
+            }
+        }
+        Key::Char('k') => {
+            if let Some(k) = app.source_list.prev_key(app.source_output_view_data.source_index_selected) {
+                app.source_output_view_data.source_index_selected = k;
+                app.redraw = true;
+            }
+        }
+        _ => {}
     }
 }
