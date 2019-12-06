@@ -13,6 +13,13 @@ use pulse::def::SinkState;
 
 use crate::App;
 
+#[derive(Default)]
+pub struct ViewData {
+}
+
+pub fn entered(app: &mut App) {
+}
+
 pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
 
     let mut constraints = vec![Constraint::Length(3); app.sink_list.len()];

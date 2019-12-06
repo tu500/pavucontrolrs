@@ -46,7 +46,7 @@ pub const VOLUME_STEP_SMALL: u32 = 655;
 pub const VOLUME_STEP_BIG: u32 = 6554;
 
 
-struct SinkInputEntry {
+pub struct SinkInputEntry {
     index:           u32,
     name:            String,
     sink_index:      u32,
@@ -93,7 +93,7 @@ impl From<&introspect::SinkInputInfo<'_>> for SinkInputEntry {
     }
 }
 
-struct SourceOutputEntry {
+pub struct SourceOutputEntry {
     index:           u32,
     name:            String,
     source_index:    u32,
@@ -131,7 +131,7 @@ impl From<&introspect::SourceOutputInfo<'_>> for SourceOutputEntry {
     }
 }
 
-struct SinkEntry {
+pub struct SinkEntry {
     index: u32,
     name: String,
     description: String,
@@ -163,7 +163,7 @@ impl From<&introspect::SinkInfo<'_>> for SinkEntry {
     }
 }
 
-struct SourceEntry {
+pub struct SourceEntry {
     index:           u32,
     name:            String,
     description:     String,
@@ -201,7 +201,7 @@ impl From<&introspect::SourceInfo<'_>> for SourceEntry {
     }
 }
 
-struct CardEntry {
+pub struct CardEntry {
     index:                  u32,
     name:                   String,
     proplist:               pulse::proplist::Proplist,
@@ -326,29 +326,39 @@ enum AppView {
 }
 
 pub struct App {
-    sink_input_list:    SelectingMap<u32, SinkInputEntry>,
-    source_output_list: SelectingMap<u32, SourceOutputEntry>,
-    sink_list:          SelectingMap<u32, SinkEntry>,
-    source_list:        SelectingMap<u32, SourceEntry>,
-    card_list:          SelectingMap<u32, CardEntry>,
-    redraw:             bool,
-    view:               AppView,
-    hide_monitors:      bool,
-    quit_request:       bool,
+    sink_input_list:         SelectingMap<u32, SinkInputEntry>,
+    source_output_list:      SelectingMap<u32, SourceOutputEntry>,
+    sink_list:               SelectingMap<u32, SinkEntry>,
+    source_list:             SelectingMap<u32, SourceEntry>,
+    card_list:               SelectingMap<u32, CardEntry>,
+    sink_input_view_data:    views::sink_inputs::ViewData,
+    source_output_view_data: views::source_outputs::ViewData,
+    sink_view_data:          views::sinks::ViewData,
+    source_view_data:        views::sources::ViewData,
+    card_view_data:          views::cards::ViewData,
+    redraw:                  bool,
+    view:                    AppView,
+    hide_monitors:           bool,
+    quit_request:            bool,
 }
 
 impl App {
     fn new() -> App {
         App {
-            sink_input_list:    SelectingMap::new(),
-            source_output_list: SelectingMap::new(),
-            sink_list:          SelectingMap::new(),
-            source_list:        SelectingMap::new(),
-            card_list:          SelectingMap::new(),
-            redraw:             true,
-            view:               AppView::SinkInputs,
-            hide_monitors:      true,
-            quit_request:       false,
+            sink_input_list:         SelectingMap::new(),
+            source_output_list:      SelectingMap::new(),
+            sink_list:               SelectingMap::new(),
+            source_list:             SelectingMap::new(),
+            card_list:               SelectingMap::new(),
+            sink_input_view_data:    Default::default(),
+            source_output_view_data: Default::default(),
+            sink_view_data:          Default::default(),
+            source_view_data:        Default::default(),
+            card_view_data:          Default::default(),
+            redraw:                  true,
+            view:                    AppView::SinkInputs,
+            hide_monitors:           true,
+            quit_request:            false,
         }
     }
 }
@@ -724,11 +734,11 @@ fn handle_key_event(key: Key, app: &Mutex<App>, context: &Mutex<Context>) {
     }
 
     match key {
-        Key::F(1) => { app.view = AppView::SinkInputs;    app.redraw = true; return; }
-        Key::F(2) => { app.view = AppView::SourceOutputs; app.redraw = true; return; }
-        Key::F(3) => { app.view = AppView::Sinks;         app.redraw = true; return; }
-        Key::F(4) => { app.view = AppView::Sources;       app.redraw = true; return; }
-        Key::F(5) => { app.view = AppView::Cards;         app.redraw = true; return; }
+        Key::F(1) => { app.view = AppView::SinkInputs;    views::sink_inputs::entered(&mut app);    app.redraw = true; return; }
+        Key::F(2) => { app.view = AppView::SourceOutputs; views::source_outputs::entered(&mut app); app.redraw = true; return; }
+        Key::F(3) => { app.view = AppView::Sinks;         views::sinks::entered(&mut app);          app.redraw = true; return; }
+        Key::F(4) => { app.view = AppView::Sources;       views::sources::entered(&mut app);        app.redraw = true; return; }
+        Key::F(5) => { app.view = AppView::Cards;         views::cards::entered(&mut app);          app.redraw = true; return; }
         _ => {}
     }
 

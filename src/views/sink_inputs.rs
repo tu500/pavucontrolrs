@@ -2,7 +2,7 @@ use termion::event::Key;
 use tui::backend::TermionBackend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
-use tui::widgets::{Block, Borders, Gauge, Widget};
+use tui::widgets::{Block, Borders, Gauge, Widget, Paragraph, Text};
 use tui::Terminal;
 
 use pulse::context::Context;
@@ -10,6 +10,27 @@ use std::sync::atomic;
 use std::sync::{Arc, Mutex};
 
 use crate::App;
+
+#[derive(Default)]
+pub struct ViewData {
+    sink_popup_open: bool,
+    sink_index_selected: u32,
+}
+
+impl ViewData {
+    pub fn open_popup(&mut self, entry: &crate::SinkInputEntry) {
+        self.sink_popup_open = true;
+        self.sink_index_selected = entry.sink_index;
+    }
+
+    pub fn close_popup(&mut self) {
+        self.sink_popup_open = false;
+    }
+}
+
+pub fn entered(app: &mut App) {
+    app.sink_input_view_data.close_popup();
+}
 
 pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
 
@@ -49,10 +70,56 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
             .ratio(volume_ratio.min(1.0))
             .label(&label)
             .render(frame, chunks[i]);
+    }
+
+    if app.sink_input_view_data.sink_popup_open {
+        draw_sink_popup(frame, rect, app);
+    }
+}
+
+pub fn draw_sink_popup<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
+
+    let focused_stream = match app.sink_input_list.get_selected() {
+        None => { app.sink_input_view_data.close_popup(); return; },
+        Some(x) => x,
+    };
+
+    let rect = rect.inner(4);
+    crate::draw::ClearingWidget::default()
+        .render(frame, rect);
+
+    let mut block = Block::default().title(" Change Sink ").borders(Borders::ALL);
+    block.render(frame, rect);
+
+    let list = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![Constraint::Length(1); app.sink_list.len()])
+        .split(block.inner(rect));
+
+    for (j, sink) in app.sink_list.values().enumerate() {
+        let mut style = Style::default();
+        if app.sink_input_view_data.sink_index_selected == sink.index {
+            style = Style::default().fg(Color::Red)
+        }
+        if focused_stream.sink_index == sink.index {
+            style = Style::default().fg(Color::Green)
+        }
+        Paragraph::new([Text::raw(format!(" {} ", sink.display_name()))].iter())
+            .style(style)
+            .render(frame, list[j]);
         }
 }
 
 pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
+
+    if app.sink_input_view_data.sink_popup_open {
+        handle_key_event_sink_popup(key, app, context);
+    } else {
+        handle_key_event_main(key, app, context);
+    }
+}
+
+pub fn handle_key_event_main(key: Key, app: &mut App, context: &Context) {
 
     match key {
         Key::Ctrl('k') => {
@@ -110,7 +177,48 @@ pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
                 new_vol.reset(new_vol.len() as u32);
                 context.introspect().set_sink_input_volume(stream.index, &new_vol, None);
             }
+            Key::Char('\n') |
+            Key::Char('i') => {
+                app.sink_input_view_data.open_popup(stream);
+                app.redraw = true;
+            }
             _ => {}
         }
+    }
+}
+
+pub fn handle_key_event_sink_popup(key: Key, app: &mut App, context: &Context) {
+
+    let stream = match app.sink_input_list.get_selected() {
+        Some(stream) => stream,
+        None => {
+            app.sink_input_view_data.close_popup();
+            return;
+        }
+    };
+
+    match key {
+        Key::Esc => {
+            app.sink_input_view_data.close_popup();
+            app.redraw = true;
+        }
+        Key::Char('\n') => {
+            context.introspect().move_sink_input_by_index(stream.index, app.sink_input_view_data.sink_index_selected, None);
+            app.sink_input_view_data.close_popup();
+            app.redraw = true;
+        }
+        Key::Char('j') => {
+            if let Some(k) = app.sink_list.next_key(app.sink_input_view_data.sink_index_selected) {
+                app.sink_input_view_data.sink_index_selected = k;
+                app.redraw = true;
+            }
+        }
+        Key::Char('k') => {
+            if let Some(k) = app.sink_list.prev_key(app.sink_input_view_data.sink_index_selected) {
+                app.sink_input_view_data.sink_index_selected = k;
+                app.redraw = true;
+            }
+        }
+        _ => {}
     }
 }

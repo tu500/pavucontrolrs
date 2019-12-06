@@ -67,3 +67,17 @@ pub fn draw_frame<T: tui::backend::Backend>(terminal: &mut tui::Terminal<T>, app
         };
     });
 }
+
+#[derive(Default)]
+pub struct ClearingWidget {
+}
+
+impl Widget for ClearingWidget {
+    fn draw(&mut self, area: tui::layout::Rect, buf: &mut tui::buffer::Buffer) {
+        for x in area.left()..area.right() {
+            for y in area.top()..area.bottom() {
+                buf.get_mut(x, y).set_symbol(" ");
+            }
+        }
+    }
+}
