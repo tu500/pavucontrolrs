@@ -97,10 +97,10 @@ pub fn draw_source_popup<T: tui::backend::Backend>(frame: &mut tui::terminal::Fr
 
     let list = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(vec![Constraint::Length(1); app.source_list.len()])
+        .constraints(vec![Constraint::Length(1); app.source_list.filtered_len(|source| !source.is_monitor())])
         .split(block.inner(rect));
 
-    for (j, source) in app.source_list.values().enumerate() {
+    for (j, source) in app.source_list.filtered_values(|source| !source.is_monitor()).enumerate() {
         let mut style = Style::default();
         if app.source_output_view_data.source_index_selected == source.index {
             style = Style::default().fg(Color::Red)
@@ -232,13 +232,17 @@ pub fn handle_key_event_source_popup(key: Key, app: &mut App, context: &Context)
             app.redraw = true;
         }
         Key::Char('j') => {
-            if let Some(k) = app.source_list.next_key(app.source_output_view_data.source_index_selected) {
+            if let Some(k) = app.source_list.filtered_next_key(
+                    app.source_output_view_data.source_index_selected,
+                    |source| !source.is_monitor()) {
                 app.source_output_view_data.source_index_selected = k;
                 app.redraw = true;
             }
         }
         Key::Char('k') => {
-            if let Some(k) = app.source_list.prev_key(app.source_output_view_data.source_index_selected) {
+            if let Some(k) = app.source_list.filtered_prev_key(
+                    app.source_output_view_data.source_index_selected,
+                    |source| !source.is_monitor()) {
                 app.source_output_view_data.source_index_selected = k;
                 app.redraw = true;
             }
