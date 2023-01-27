@@ -177,6 +177,36 @@ pub fn handle_key_event_main(key: Key, app: &mut App, context: &Context) {
                 new_vol.reset(new_vol.len());
                 context.introspect().set_sink_input_volume(stream.index, &new_vol, None);
             }
+            Key::Char('^')
+                | Key::Char('1')
+                | Key::Char('2')
+                | Key::Char('3')
+                | Key::Char('4')
+                | Key::Char('5')
+                | Key::Char('6')
+                | Key::Char('7')
+                | Key::Char('8')
+                | Key::Char('9')
+                | Key::Char('0') => {
+
+                let factor = match key {
+                    Key::Char('^') => 0,
+                    Key::Char('1') => 1,
+                    Key::Char('2') => 2,
+                    Key::Char('3') => 3,
+                    Key::Char('4') => 4,
+                    Key::Char('5') => 5,
+                    Key::Char('6') => 6,
+                    Key::Char('7') => 7,
+                    Key::Char('8') => 8,
+                    Key::Char('9') => 9,
+                    Key::Char('0') => 10,
+                    _ => 0,
+                };
+                let mut new_vol = stream.volume.clone();
+                new_vol.set(new_vol.len(), pulse::volume::Volume{0: pulse::volume::Volume::NORMAL.0 / 10 * factor});
+                context.introspect().set_sink_input_volume(stream.index, &new_vol, None);
+            }
             Key::Char('\n') |
             Key::Char('i') => {
                 app.sink_input_view_data.open_popup(stream);
