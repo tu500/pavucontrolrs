@@ -393,7 +393,7 @@ fn mainloop_iter(mainloop: &mut Mainloop, timeout: Option<pulse::time::MicroSeco
 
 fn main() {
     let app = Arc::new(Mutex::new(App::new()));
-    app.lock().unwrap().view = AppView::Cards;
+    // app.lock().unwrap().view = AppView::Cards;
 
     // Connect to PA
     let mut proplist = Proplist::new().expect("Proplist init failed");
