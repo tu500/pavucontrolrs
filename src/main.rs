@@ -23,7 +23,7 @@ use pulse::mainloop::standard::IterateResult;
 use pulse::callbacks::ListResult;
 use pulse::def::Retval;
 use pulse::error::PAErr;
-use pulse::context::subscribe::{Facility, Operation, subscription_masks};
+use pulse::context::subscribe::{Facility, Operation, InterestMaskSet};
 use pulse::volume::{VolumeLinear, ChannelVolumes};
 
 use termion::event::Key;
@@ -364,7 +364,7 @@ impl App {
 }
 
 
-fn mainloop_iter(mainloop: &mut Mainloop, timeout: Option<i32>) -> IterateResult
+fn mainloop_iter(mainloop: &mut Mainloop, timeout: Option<pulse::time::MicroSeconds>) -> IterateResult
 {
     if let Result::Err(pae) = mainloop.prepare(timeout) {
         if pae == PAErr(-2) // just a quit request
@@ -405,7 +405,7 @@ fn main() {
         &proplist
         ).expect("Failed to create new context")));
 
-    context.lock().unwrap().connect(None, pulse::context::flags::NOFLAGS, None)
+    context.lock().unwrap().connect(None, pulse::context::FlagSet::NOFLAGS, None)
         .expect("Failed to connect context");
 
     // Wait for context to be ready
@@ -528,11 +528,11 @@ fn main() {
     });
 
     // Subscribe to change events
-    let interest = subscription_masks::SINK_INPUT |
-        subscription_masks::SOURCE_OUTPUT |
-        subscription_masks::SINK |
-        subscription_masks::SOURCE |
-        subscription_masks::MASK_CARD;
+    let interest = InterestMaskSet::SINK_INPUT |
+        InterestMaskSet::SINK |
+        InterestMaskSet::SOURCE_OUTPUT |
+        InterestMaskSet::SOURCE |
+        InterestMaskSet::CARD;
     context.lock().unwrap().subscribe(
         interest,
         |_| {}
@@ -668,7 +668,7 @@ fn main() {
     // Run PA mainloop
     loop {
 
-        let timeout = 10000; // in microseconds
+        let timeout = pulse::time::MicroSeconds(10000); // in microseconds
 
         match mainloop_iter(&mut mainloop.borrow_mut(), Some(timeout)) {
             IterateResult::Quit(_) => {

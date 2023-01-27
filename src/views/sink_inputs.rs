@@ -44,7 +44,7 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
 
     for (i, stream) in app.sink_input_list.values().enumerate() {
         let vol = stream.volume.avg();
-        let volume_ratio = vol.0 as f64 / pulse::volume::VOLUME_NORM.0 as f64;
+        let volume_ratio = vol.0 as f64 / pulse::volume::Volume::NORMAL.0 as f64;
         let mut label = format!("{:.0}%", volume_ratio * 100f64);
         if stream.mute {
             label += " (muted)";
@@ -169,12 +169,12 @@ pub fn handle_key_event_main(key: Key, app: &mut App, context: &Context) {
             }
             Key::Ctrl('h') => {
                 let mut new_vol = stream.volume.clone();
-                new_vol.mute(new_vol.len() as u32);
+                new_vol.mute(new_vol.len());
                 context.introspect().set_sink_input_volume(stream.index, &new_vol, None);
             }
             Key::Ctrl('l') => {
                 let mut new_vol = stream.volume.clone();
-                new_vol.reset(new_vol.len() as u32);
+                new_vol.reset(new_vol.len());
                 context.introspect().set_sink_input_volume(stream.index, &new_vol, None);
             }
             Key::Char('\n') |

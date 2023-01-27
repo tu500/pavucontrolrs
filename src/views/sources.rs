@@ -32,7 +32,7 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
 
     for (i, source) in app.source_list.filtered_values(|x| !(x.is_monitor() && app.hide_monitors)).enumerate() {
         let vol = source.volume.avg();
-        let volume_ratio = vol.0 as f64 / pulse::volume::VOLUME_NORM.0 as f64;
+        let volume_ratio = vol.0 as f64 / pulse::volume::Volume::NORMAL.0 as f64;
         let mut label = format!("{:.0}%", volume_ratio * 100f64);
         if source.mute {
             label += " (muted)";
@@ -110,13 +110,13 @@ pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
             Key::Ctrl('h') => {
                 if app.hide_monitors && source.is_monitor() { return; }
                 let mut new_vol = source.volume.clone();
-                new_vol.mute(new_vol.len() as u32);
+                new_vol.mute(new_vol.len());
                 context.introspect().set_source_volume_by_index(source.index, &new_vol, None);
             }
             Key::Ctrl('l') => {
                 if app.hide_monitors && source.is_monitor() { return; }
                 let mut new_vol = source.volume.clone();
-                new_vol.reset(new_vol.len() as u32);
+                new_vol.reset(new_vol.len());
                 context.introspect().set_source_volume_by_index(source.index, &new_vol, None);
             }
             _ => {}

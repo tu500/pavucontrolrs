@@ -33,7 +33,7 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
     for (i, sink) in app.sink_list.values().enumerate() {
         // let volume_ratio = VolumeLinear::from(sink.volume.avg()).0;
         let vol = sink.volume.avg();
-        let volume_ratio = vol.0 as f64 / pulse::volume::VOLUME_NORM.0 as f64;
+        let volume_ratio = vol.0 as f64 / pulse::volume::Volume::NORMAL.0 as f64;
         let mut label = format!("{:.0}%", volume_ratio * 100f64);
         if sink.mute {
             label += " (muted)";
@@ -97,12 +97,12 @@ pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
             }
             Key::Ctrl('h') => {
                 let mut new_vol = sink.volume.clone();
-                new_vol.mute(new_vol.len() as u32);
+                new_vol.mute(new_vol.len());
                 context.introspect().set_sink_volume_by_index(sink.index, &new_vol, None);
             }
             Key::Ctrl('l') => {
                 let mut new_vol = sink.volume.clone();
-                new_vol.reset(new_vol.len() as u32);
+                new_vol.reset(new_vol.len());
                 context.introspect().set_sink_volume_by_index(sink.index, &new_vol, None);
             }
             _ => {}
