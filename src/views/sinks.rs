@@ -135,6 +135,11 @@ pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
                 new_vol.set(new_vol.len(), pulse::volume::Volume{0: pulse::volume::Volume::NORMAL.0 / 10 * factor});
                 context.introspect().set_sink_volume_by_index(sink.index, &new_vol, None);
             }
+            Key::Char('D') => {
+                if let Some(owner_module_id) = sink.owner_module {
+                    context.introspect().unload_module(owner_module_id, |_| {});
+                }
+            }
             _ => {}
         }
     }

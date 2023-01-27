@@ -132,14 +132,15 @@ impl From<&introspect::SourceOutputInfo<'_>> for SourceOutputEntry {
 }
 
 pub struct SinkEntry {
-    index: u32,
-    name: String,
-    description: String,
-    volume: ChannelVolumes,
-    mute: bool,
-    state: pulse::def::SinkState,
-    proplist: pulse::proplist::Proplist,
-    ports: Vec<PortInfo>,
+    index:        u32,
+    name:         String,
+    description:  String,
+    volume:       ChannelVolumes,
+    mute:         bool,
+    state:        pulse::def::SinkState,
+    owner_module: Option<u32>,
+    proplist:     pulse::proplist::Proplist,
+    ports:        Vec<PortInfo>,
 }
 
 impl SinkEntry {
@@ -151,14 +152,15 @@ impl SinkEntry {
 impl From<&introspect::SinkInfo<'_>> for SinkEntry {
     fn from(entry: &introspect::SinkInfo) -> SinkEntry {
         SinkEntry {
-            index:       entry.index,
-            name:        String::from(entry.name.as_ref().expect("SinkInfo without name").as_ref()),
-            description: String::from(entry.description.as_ref().expect("SinkInfo without description").as_ref()),
-            volume:      entry.volume,
-            mute:        entry.mute,
-            state:       entry.state,
-            proplist:    entry.proplist.clone(),
-            ports:       entry.ports.iter().map(|x| PortInfo::from(x)).collect(),
+            index:        entry.index,
+            name:         String::from(entry.name.as_ref().expect("SinkInfo without name").as_ref()),
+            description:  String::from(entry.description.as_ref().expect("SinkInfo without description").as_ref()),
+            volume:       entry.volume,
+            mute:         entry.mute,
+            state:        entry.state,
+            owner_module: entry.owner_module,
+            proplist:     entry.proplist.clone(),
+            ports:        entry.ports.iter().map(|x| PortInfo::from(x)).collect(),
         }
     }
 }
@@ -171,6 +173,7 @@ pub struct SourceEntry {
     mute:            bool,
     monitor_of_sink: Option<u32>,
     state:           pulse::def::SourceState,
+    owner_module:    Option<u32>,
     proplist:        pulse::proplist::Proplist,
     ports:           Vec<PortInfo>,
 }
@@ -195,6 +198,7 @@ impl From<&introspect::SourceInfo<'_>> for SourceEntry {
             mute:            entry.mute,
             monitor_of_sink: entry.monitor_of_sink,
             state:           entry.state,
+            owner_module:    entry.owner_module,
             proplist:        entry.proplist.clone(),
             ports:           entry.ports.iter().map(|x| PortInfo::from(x)).collect(),
         }
