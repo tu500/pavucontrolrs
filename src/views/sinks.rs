@@ -2,7 +2,7 @@ use termion::event::Key;
 use tui::backend::TermionBackend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
-use tui::widgets::{Block, Borders, Gauge, Widget};
+use tui::widgets::{Block, Borders, Gauge, Widget, Paragraph, Text};
 use tui::Terminal;
 
 use pulse::context::Context;
@@ -15,9 +15,21 @@ use crate::App;
 
 #[derive(Default)]
 pub struct ViewData {
+    keybinding_popup_open: bool,
+}
+
+impl ViewData {
+    pub fn open_keybinding_popup(&mut self) {
+        self.keybinding_popup_open = true;
+    }
+
+    pub fn close_keybinding_popup(&mut self) {
+        self.keybinding_popup_open = false;
+    }
 }
 
 pub fn entered(app: &mut App) {
+    app.sink_view_data.close_keybinding_popup();
 }
 
 pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
@@ -60,9 +72,64 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
             .label(&label)
             .render(frame, chunks[i]);
         }
+
+    if app.sink_view_data.keybinding_popup_open {
+        draw_keybinding_popup(frame, rect, app);
+    }
+}
+
+pub fn draw_keybinding_popup<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
+
+    let keys = vec![
+        ( "F1 through F5", "Change tab"),
+        ( "?", "Hotkeys"),
+        ( "Esc", "Close popup"),
+        ( "j/down  k/up", "Movement"),
+        ( "^  1 through 0", "Audio level shortcut"),
+        ( "m", "Toggle mute"),
+        ( "h  l", "Volume down / up"),
+        ( "H  L", "Volume down / up (10% steps)"),
+        ( "ctrl-H  ctrl-L", "Volume 0% / 100%"),
+        ( "D", "Unload owner module (remove sink)"),
+    ];
+
+    let rect = rect.inner(4);
+    crate::draw::ClearingWidget::default()
+        .render(frame, rect);
+
+    let mut block = Block::default().title(" Keybindings ").borders(Borders::ALL);
+    block.render(frame, rect);
+
+    let list = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![Constraint::Length(1); keys.len()])
+        .split(block.inner(rect));
+
+    for (j, (key, desc)) in keys.iter().enumerate() {
+        Paragraph::new([Text::raw(format!(" {:^17} {}", key, desc))].iter())
+                .render(frame, list[j]);
+    }
 }
 
 pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
+
+    if app.sink_view_data.keybinding_popup_open {
+        handle_key_event_keybinding_popup(key, app, context);
+    } else {
+        handle_key_event_main(key, app, context);
+    }
+}
+
+pub fn handle_key_event_main(key: Key, app: &mut App, context: &Context) {
+
+    match key {
+        Key::Char('?') => {
+            app.sink_view_data.open_keybinding_popup();
+            app.redraw = true;
+            return;
+        }
+        _ => {}
+    }
 
     if let Some(sink) = app.sink_list.get_selected() {
         match key {
@@ -142,5 +209,15 @@ pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
             }
             _ => {}
         }
+    }
+}
+
+pub fn handle_key_event_keybinding_popup(key: Key, app: &mut App, context: &Context) {
+    match key {
+        Key::Esc => {
+            app.sink_view_data.close_keybinding_popup();
+            app.redraw = true;
+        }
+        _ => {}
     }
 }

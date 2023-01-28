@@ -14,22 +14,32 @@ use crate::App;
 #[derive(Default)]
 pub struct ViewData {
     sink_popup_open: bool,
+    keybinding_popup_open: bool,
     sink_index_selected: u32,
 }
 
 impl ViewData {
-    pub fn open_popup(&mut self, entry: &crate::SinkInputEntry) {
+    pub fn open_sink_popup(&mut self, entry: &crate::SinkInputEntry) {
         self.sink_popup_open = true;
         self.sink_index_selected = entry.sink_index;
     }
 
-    pub fn close_popup(&mut self) {
+    pub fn close_sink_popup(&mut self) {
         self.sink_popup_open = false;
+    }
+
+    pub fn open_keybinding_popup(&mut self) {
+        self.keybinding_popup_open = true;
+    }
+
+    pub fn close_keybinding_popup(&mut self) {
+        self.keybinding_popup_open = false;
     }
 }
 
 pub fn entered(app: &mut App) {
-    app.sink_input_view_data.close_popup();
+    app.sink_input_view_data.close_sink_popup();
+    app.sink_input_view_data.close_keybinding_popup();
 }
 
 pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
@@ -75,12 +85,16 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
     if app.sink_input_view_data.sink_popup_open {
         draw_sink_popup(frame, rect, app);
     }
+
+    if app.sink_input_view_data.keybinding_popup_open {
+        draw_keybinding_popup(frame, rect, app);
+    }
 }
 
 pub fn draw_sink_popup<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
 
     let focused_stream = match app.sink_input_list.get_selected() {
-        None => { app.sink_input_view_data.close_popup(); return; },
+        None => { app.sink_input_view_data.close_sink_popup(); return; },
         Some(x) => x,
     };
 
@@ -110,9 +124,46 @@ pub fn draw_sink_popup<T: tui::backend::Backend>(frame: &mut tui::terminal::Fram
         }
 }
 
+pub fn draw_keybinding_popup<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
+
+    let keys = vec![
+        ( "F1 through F5", "Change tab"),
+        ( "?", "Hotkeys"),
+        ( "Esc", "Close popup"),
+        ( "j/down  k/up", "Movement"),
+        ( "^  1 through 0", "Audio level shortcut"),
+        ( "m", "Toggle mute"),
+        ( "h  l", "Volume down / up"),
+        ( "H  L", "Volume down / up (10% steps)"),
+        ( "ctrl-H  ctrl-L", "Volume 0% / 100%"),
+        ( "i  return", "Choose sink for selected stream"),
+        ( "K", "Kill stream"),
+        ( "ctrl-k", "Kill all non-running streams"),
+    ];
+
+    let rect = rect.inner(4);
+    crate::draw::ClearingWidget::default()
+        .render(frame, rect);
+
+    let mut block = Block::default().title(" Keybindings ").borders(Borders::ALL);
+    block.render(frame, rect);
+
+    let list = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![Constraint::Length(1); keys.len()])
+        .split(block.inner(rect));
+
+    for (j, (key, desc)) in keys.iter().enumerate() {
+        Paragraph::new([Text::raw(format!(" {:^17} {}", key, desc))].iter())
+                .render(frame, list[j]);
+    }
+}
+
 pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
 
-    if app.sink_input_view_data.sink_popup_open {
+    if app.sink_input_view_data.keybinding_popup_open {
+        handle_key_event_keybinding_popup(key, app, context);
+    } else if app.sink_input_view_data.sink_popup_open {
         handle_key_event_sink_popup(key, app, context);
     } else {
         handle_key_event_main(key, app, context);
@@ -128,6 +179,11 @@ pub fn handle_key_event_main(key: Key, app: &mut App, context: &Context) {
                     context.introspect().kill_sink_input(stream.index, |_| {});
                 }
             }
+            return;
+        }
+        Key::Char('?') => {
+            app.sink_input_view_data.open_keybinding_popup();
+            app.redraw = true;
             return;
         }
         _ => {}
@@ -209,7 +265,7 @@ pub fn handle_key_event_main(key: Key, app: &mut App, context: &Context) {
             }
             Key::Char('\n') |
             Key::Char('i') => {
-                app.sink_input_view_data.open_popup(stream);
+                app.sink_input_view_data.open_sink_popup(stream);
                 app.redraw = true;
             }
             _ => {}
@@ -222,19 +278,19 @@ pub fn handle_key_event_sink_popup(key: Key, app: &mut App, context: &Context) {
     let stream = match app.sink_input_list.get_selected() {
         Some(stream) => stream,
         None => {
-            app.sink_input_view_data.close_popup();
+            app.sink_input_view_data.close_sink_popup();
             return;
         }
     };
 
     match key {
         Key::Esc => {
-            app.sink_input_view_data.close_popup();
+            app.sink_input_view_data.close_sink_popup();
             app.redraw = true;
         }
         Key::Char('\n') => {
             context.introspect().move_sink_input_by_index(stream.index, app.sink_input_view_data.sink_index_selected, None);
-            app.sink_input_view_data.close_popup();
+            app.sink_input_view_data.close_sink_popup();
             app.redraw = true;
         }
         Key::Char('j') | Key::Down => {
@@ -248,6 +304,16 @@ pub fn handle_key_event_sink_popup(key: Key, app: &mut App, context: &Context) {
                 app.sink_input_view_data.sink_index_selected = k;
                 app.redraw = true;
             }
+        }
+        _ => {}
+    }
+}
+
+pub fn handle_key_event_keybinding_popup(key: Key, app: &mut App, context: &Context) {
+    match key {
+        Key::Esc => {
+            app.sink_input_view_data.close_keybinding_popup();
+            app.redraw = true;
         }
         _ => {}
     }

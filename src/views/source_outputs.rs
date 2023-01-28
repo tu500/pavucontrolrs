@@ -14,22 +14,32 @@ use crate::App;
 #[derive(Default)]
 pub struct ViewData {
     source_popup_open: bool,
+    keybinding_popup_open: bool,
     source_index_selected: u32,
 }
 
 impl ViewData {
-    pub fn open_popup(&mut self, entry: &crate::SourceOutputEntry) {
+    pub fn open_source_popup(&mut self, entry: &crate::SourceOutputEntry) {
         self.source_popup_open = true;
         self.source_index_selected = entry.source_index;
     }
 
-    pub fn close_popup(&mut self) {
+    pub fn close_source_popup(&mut self) {
         self.source_popup_open = false;
+    }
+
+    pub fn open_keybinding_popup(&mut self) {
+        self.keybinding_popup_open = true;
+    }
+
+    pub fn close_keybinding_popup(&mut self) {
+        self.keybinding_popup_open = false;
     }
 }
 
 pub fn entered(app: &mut App) {
-    app.source_output_view_data.close_popup();
+    app.source_output_view_data.close_source_popup();
+    app.source_output_view_data.close_keybinding_popup();
 }
 
 pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
@@ -79,12 +89,16 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
     if app.source_output_view_data.source_popup_open {
         draw_source_popup(frame, rect, app);
     }
+
+    if app.source_output_view_data.keybinding_popup_open {
+        draw_keybinding_popup(frame, rect, app);
+    }
 }
 
 pub fn draw_source_popup<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
 
     let focused_stream = match app.source_output_list.get_selected() {
-        None => { app.source_output_view_data.close_popup(); return; },
+        None => { app.source_output_view_data.close_source_popup(); return; },
         Some(x) => x,
     };
 
@@ -114,9 +128,46 @@ pub fn draw_source_popup<T: tui::backend::Backend>(frame: &mut tui::terminal::Fr
         }
 }
 
+pub fn draw_keybinding_popup<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
+
+    let keys = vec![
+        ( "F1 through F5", "Change tab"),
+        ( "?", "Hotkeys"),
+        ( "Esc", "Close popup"),
+        ( "j/down  k/up", "Movement"),
+        ( "^  1 through 0", "Audio level shortcut"),
+        ( "m", "Toggle mute"),
+        ( "h  l", "Volume down / up"),
+        ( "H  L", "Volume down / up (10% steps)"),
+        ( "ctrl-H  ctrl-L", "Volume 0% / 100%"),
+        ( "i  return", "Choose source for selected stream"),
+        ( "K", "Kill stream"),
+        ( "ctrl-k", "Kill all non-running streams"),
+    ];
+
+    let rect = rect.inner(4);
+    crate::draw::ClearingWidget::default()
+        .render(frame, rect);
+
+    let mut block = Block::default().title(" Keybindings ").borders(Borders::ALL);
+    block.render(frame, rect);
+
+    let list = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![Constraint::Length(1); keys.len()])
+        .split(block.inner(rect));
+
+    for (j, (key, desc)) in keys.iter().enumerate() {
+        Paragraph::new([Text::raw(format!(" {:^17} {}", key, desc))].iter())
+                .render(frame, list[j]);
+    }
+}
+
 pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
 
-    if app.source_output_view_data.source_popup_open {
+    if app.source_output_view_data.keybinding_popup_open {
+        handle_key_event_keybinding_popup(key, app, context);
+    } else if app.source_output_view_data.source_popup_open {
         handle_key_event_source_popup(key, app, context);
     } else {
         handle_key_event_main(key, app, context);
@@ -136,6 +187,11 @@ pub fn handle_key_event_main(key: Key, app: &mut App, context: &Context) {
                     context.introspect().kill_source_output(stream.index, |_| {});
                 }
             }
+            return;
+        }
+        Key::Char('?') => {
+            app.source_output_view_data.open_keybinding_popup();
+            app.redraw = true;
             return;
         }
         _ => {}
@@ -233,7 +289,7 @@ pub fn handle_key_event_main(key: Key, app: &mut App, context: &Context) {
             }
             Key::Char('\n') |
             Key::Char('i') => {
-                app.source_output_view_data.open_popup(stream);
+                app.source_output_view_data.open_source_popup(stream);
                 app.redraw = true;
             }
             _ => {}
@@ -246,19 +302,19 @@ pub fn handle_key_event_source_popup(key: Key, app: &mut App, context: &Context)
     let stream = match app.source_output_list.get_selected() {
         Some(stream) => stream,
         None => {
-            app.source_output_view_data.close_popup();
+            app.source_output_view_data.close_source_popup();
             return;
         }
     };
 
     match key {
         Key::Esc => {
-            app.source_output_view_data.close_popup();
+            app.source_output_view_data.close_source_popup();
             app.redraw = true;
         }
         Key::Char('\n') => {
             context.introspect().move_source_output_by_index(stream.index, app.source_output_view_data.source_index_selected, None);
-            app.source_output_view_data.close_popup();
+            app.source_output_view_data.close_source_popup();
             app.redraw = true;
         }
         Key::Char('j') | Key::Down => {
@@ -276,6 +332,16 @@ pub fn handle_key_event_source_popup(key: Key, app: &mut App, context: &Context)
                 app.source_output_view_data.source_index_selected = k;
                 app.redraw = true;
             }
+        }
+        _ => {}
+    }
+}
+
+pub fn handle_key_event_keybinding_popup(key: Key, app: &mut App, context: &Context) {
+    match key {
+        Key::Esc => {
+            app.source_output_view_data.close_keybinding_popup();
+            app.redraw = true;
         }
         _ => {}
     }
