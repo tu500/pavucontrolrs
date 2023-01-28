@@ -66,21 +66,21 @@ pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
 
     if let Some(sink) = app.sink_list.get_selected() {
         match key {
-            Key::Char('j') => {
+            Key::Char('j') | Key::Down => {
                 app.sink_list.select_next();
             }
-            Key::Char('k') => {
+            Key::Char('k') | Key::Up => {
                 app.sink_list.select_prev();
             }
             Key::Char('m') => {
                 context.introspect().set_sink_mute_by_index(sink.index, !sink.mute, None);
             }
-            Key::Char('h') => {
+            Key::Char('h') | Key::Left => {
                 let mut new_vol = sink.volume.clone();
                 new_vol.decrease(pulse::volume::Volume{0: crate::VOLUME_STEP_SMALL});
                 context.introspect().set_sink_volume_by_index(sink.index, &new_vol, None);
             }
-            Key::Char('l') => {
+            Key::Char('l') | Key::Right => {
                 let mut new_vol = sink.volume.clone();
                 new_vol.increase(pulse::volume::Volume{0: crate::VOLUME_STEP_SMALL});
                 context.introspect().set_sink_volume_by_index(sink.index, &new_vol, None);

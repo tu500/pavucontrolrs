@@ -65,14 +65,14 @@ pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
 
     if let Some(source) = app.source_list.get_selected() {
         match key {
-            Key::Char('j') => {
+            Key::Char('j') | Key::Down => {
                 if app.hide_monitors {
                     app.source_list.filtered_select_next(|x| !x.is_monitor());
                 } else {
                     app.source_list.select_next();
                 }
             }
-            Key::Char('k') => {
+            Key::Char('k') | Key::Up => {
                 if app.hide_monitors {
                     app.source_list.filtered_select_prev(|x| !x.is_monitor());
                 } else {
@@ -83,13 +83,13 @@ pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
                 if app.hide_monitors && source.is_monitor() { return; }
                 context.introspect().set_source_mute_by_index(source.index, !source.mute, None);
             }
-            Key::Char('h') => {
+            Key::Char('h') | Key::Left => {
                 if app.hide_monitors && source.is_monitor() { return; }
                 let mut new_vol = source.volume.clone();
                 new_vol.decrease(pulse::volume::Volume{0: crate::VOLUME_STEP_SMALL});
                 context.introspect().set_source_volume_by_index(source.index, &new_vol, None);
             }
-            Key::Char('l') => {
+            Key::Char('l') | Key::Right => {
                 if app.hide_monitors && source.is_monitor() { return; }
                 let mut new_vol = source.volume.clone();
                 new_vol.increase(pulse::volume::Volume{0: crate::VOLUME_STEP_SMALL});

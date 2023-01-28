@@ -135,10 +135,10 @@ pub fn handle_key_event_main(key: Key, app: &mut App, context: &Context) {
 
     if let Some(stream) = app.sink_input_list.get_selected() {
         match key {
-            Key::Char('j') => {
+            Key::Char('j') | Key::Down => {
                 app.sink_input_list.select_next();
             }
-            Key::Char('k') => {
+            Key::Char('k') | Key::Up => {
                 app.sink_input_list.select_prev();
             }
             Key::Char('m') => {
@@ -147,12 +147,12 @@ pub fn handle_key_event_main(key: Key, app: &mut App, context: &Context) {
             Key::Char('K') => {
                 context.introspect().kill_sink_input(stream.index, |_| {});
             }
-            Key::Char('h') => {
+            Key::Char('h') | Key::Left => {
                 let mut new_vol = stream.volume.clone();
                 new_vol.decrease(pulse::volume::Volume{0: crate::VOLUME_STEP_SMALL});
                 context.introspect().set_sink_input_volume(stream.index, &new_vol, None);
             }
-            Key::Char('l') => {
+            Key::Char('l') | Key::Right => {
                 let mut new_vol = stream.volume.clone();
                 new_vol.increase(pulse::volume::Volume{0: crate::VOLUME_STEP_SMALL});
                 context.introspect().set_sink_input_volume(stream.index, &new_vol, None);
@@ -237,13 +237,13 @@ pub fn handle_key_event_sink_popup(key: Key, app: &mut App, context: &Context) {
             app.sink_input_view_data.close_popup();
             app.redraw = true;
         }
-        Key::Char('j') => {
+        Key::Char('j') | Key::Down => {
             if let Some(k) = app.sink_list.next_key(app.sink_input_view_data.sink_index_selected) {
                 app.sink_input_view_data.sink_index_selected = k;
                 app.redraw = true;
             }
         }
-        Key::Char('k') => {
+        Key::Char('k') | Key::Up => {
             if let Some(k) = app.sink_list.prev_key(app.sink_input_view_data.sink_index_selected) {
                 app.sink_input_view_data.sink_index_selected = k;
                 app.redraw = true;

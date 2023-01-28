@@ -83,10 +83,10 @@ pub fn handle_key_event(key: Key, app: &mut App, context: &Context) {
 
     if let Some(card) = app.card_list.get_selected_mut() {
         match key {
-            Key::Char('j') => {
+            Key::Char('j') | Key::Down => {
                 app.card_list.select_next();
             }
-            Key::Char('k') => {
+            Key::Char('k') | Key::Up => {
                 app.card_list.select_prev();
             }
             Key::Char('+') => {
