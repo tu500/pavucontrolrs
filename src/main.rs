@@ -746,6 +746,18 @@ fn handle_key_event(key: Key, app: &Mutex<App>, context: &Mutex<Context>) {
         _ => {}
     }
 
+    if key == Key::Char('\t') {
+        match app.view {
+            AppView::SinkInputs    => { app.view = AppView::SourceOutputs; views::source_outputs::entered(&mut app); }
+            AppView::SourceOutputs => { app.view = AppView::Sinks;         views::sinks::entered(&mut app);          }
+            AppView::Sinks         => { app.view = AppView::Sources;       views::sources::entered(&mut app);        }
+            AppView::Sources       => { app.view = AppView::Cards;         views::cards::entered(&mut app);          }
+            AppView::Cards         => { app.view = AppView::SinkInputs;    views::sink_inputs::entered(&mut app);    }
+        }
+        app.redraw = true;
+        return;
+    }
+
     if key == Key::Char('M') {
         app.hide_monitors = !app.hide_monitors;
         if app.hide_monitors {
@@ -760,6 +772,7 @@ fn handle_key_event(key: Key, app: &Mutex<App>, context: &Mutex<Context>) {
             }
         }
         app.redraw = true;
+        return;
     }
 
     match app.view {

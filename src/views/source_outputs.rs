@@ -132,6 +132,8 @@ pub fn draw_keybinding_popup<T: tui::backend::Backend>(frame: &mut tui::terminal
 
     let keys = vec![
         ( "F1 through F5", "Change tab"),
+        ( "Tab", "Cycle tabs"),
+        ( "q  crtl-c", "Quit"),
         ( "?", "Hotkeys"),
         ( "Esc", "Close popup"),
         ( "j/down  k/up", "Movement"),
