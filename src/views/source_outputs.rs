@@ -45,7 +45,7 @@ pub fn entered(app: &mut App) {
 pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
 
     let mut constraints = vec![Constraint::Length(3); app.source_output_list. filtered_len(
-        |x| !(app.source_list.get(x.source_index).expect("SourceOutputEntry.source_index not in list").is_monitor() && app.hide_monitors)
+        |x| !((x.source_index == 0xffffffff || app.source_list.get(x.source_index).map(|x| x.is_monitor()).unwrap_or(false)) && app.hide_monitors)
     )];
     constraints.push(Constraint::Min(0));
 
@@ -55,7 +55,7 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
         .split(rect);
 
     for (i, stream) in app.source_output_list.filtered_values(
-        |x| !(app.source_list.get(x.source_index).expect("SourceOutputEntry.source_index not in list").is_monitor() && app.hide_monitors)
+        |x| !((x.source_index == 0xffffffff || app.source_list.get(x.source_index).map(|x| x.is_monitor()).unwrap_or(false)) && app.hide_monitors)
     ).enumerate() {
         let vol = stream.volume.avg();
         let volume_ratio = vol.0 as f64 / pulse::volume::Volume::NORMAL.0 as f64;
