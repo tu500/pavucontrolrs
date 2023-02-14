@@ -13,7 +13,7 @@ use tui::Terminal;
 use crate::{App, AppView};
 use crate::views;
 
-pub fn setup_terminal() -> Result<tui::terminal::Terminal<tui::backend::TermionBackend<termion::screen::AlternateScreen<termion::input::MouseTerminal<termion::raw::RawTerminal<std::io::Stdout>>>>>, failure::Error> {
+pub fn setup_terminal() -> Result<tui::terminal::Terminal<tui::backend::TermionBackend<termion::screen::AlternateScreen<termion::input::MouseTerminal<termion::raw::RawTerminal<std::io::Stdout>>>>>, std::io::Error> {
     let stdout = std::io::stdout().into_raw_mode()?;
     let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);

@@ -9,6 +9,5 @@ edition = "2018"
 [dependencies]
 #cursive = { git = "https://github.com/gyscos/cursive" }
 libpulse-binding = "2.27.1"
-failure = "0.1.6"
 termion = "1.5.3"
 tui = "0.6.2"
