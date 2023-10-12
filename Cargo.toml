@@ -5,6 +5,12 @@ authors = ["Ike <ike@koeln.ccc.de>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 
+description = "A TUI (curses) clone of pavucontrol written in rust"
+repository = "https://github.com/tu500/pavucontrolrs"
+readme = "README.md"
+keywords = ["pulseaudio", "pavucontrol", "audio"]
+categories = ["command-line-utilities"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
