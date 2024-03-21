@@ -16,5 +16,5 @@ categories = ["command-line-utilities"]
 [dependencies]
 #cursive = { git = "https://github.com/gyscos/cursive" }
 libpulse-binding = "2.27.1"
-termion = "1.5.3"
-tui = "0.6.2"
+ratatui = { version = "0.26.1", features = ["termion"] }
+termion = "3.0.0"

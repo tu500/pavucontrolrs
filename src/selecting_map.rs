@@ -19,7 +19,7 @@ impl<K: std::cmp::Ord + std::marker::Copy, V> SelectingMap<K, V> {
     pub fn update(&mut self, index: K, info: V) {
         self.contents.insert(index, info);
 
-        if self.selected_index == None {
+        if self.selected_index.is_none() {
             assert_ne!(self.contents.len(), 0);
             self.selected_index = Some(*self.contents.keys().next().expect("No key in SelectingMap after inserting"));
         }

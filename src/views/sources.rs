@@ -1,9 +1,10 @@
 use termion::event::Key;
-use tui::backend::TermionBackend;
-use tui::layout::{Constraint, Direction, Layout, Rect};
-use tui::style::{Color, Modifier, Style};
-use tui::widgets::{Block, Borders, Gauge, Widget, Paragraph, Text};
-use tui::Terminal;
+use ratatui::backend::TermionBackend;
+use ratatui::layout::{Constraint, Direction, Layout, Rect, Margin};
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::widgets::{Block, Borders, Gauge, Widget, Paragraph};
+use ratatui::text::Text;
+use ratatui::Terminal;
 
 use pulse::context::Context;
 use std::sync::atomic;
@@ -32,7 +33,7 @@ pub fn entered(app: &mut App) {
     app.source_view_data.close_keybinding_popup();
 }
 
-pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
+pub fn draw(frame: &mut ratatui::terminal::Frame, rect: Rect, app: &mut App) {
 
     let mut constraints = vec![Constraint::Length(3); app.source_list.filtered_len(|x| !(x.is_monitor() && app.hide_monitors))];
     constraints.push(Constraint::Min(0));
@@ -65,11 +66,11 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
         };
 
         Gauge::default()
-            .block(Block::default().title(&title).borders(Borders::ALL))
-            .style(Style::default().fg(color))
+            .block(Block::bordered().title(title))
+            .gauge_style(Style::default().fg(color))
             .ratio(volume_ratio.min(1.0))
             .label(&label)
-            .render(frame, chunks[i]);
+            .render(chunks[i], frame.buffer_mut());
         }
 
     if app.source_view_data.keybinding_popup_open {
@@ -77,7 +78,7 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
     }
 }
 
-pub fn draw_keybinding_popup<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
+pub fn draw_keybinding_popup(frame: &mut ratatui::terminal::Frame, rect: Rect, app: &mut App) {
 
     let keys = vec![
         ( "F1 through F5", "Change tab"),
@@ -94,21 +95,23 @@ pub fn draw_keybinding_popup<T: tui::backend::Backend>(frame: &mut tui::terminal
         ( "D", "Unload owner module (remove source)"),
     ];
 
-    let rect = rect.inner(4);
+    let rect = rect.inner(&Margin::new(4, 4));
     crate::draw::ClearingWidget::default()
-        .render(frame, rect);
+        .render(rect, frame.buffer_mut());
 
-    let mut block = Block::default().title(" Keybindings ").borders(Borders::ALL);
-    block.render(frame, rect);
+    let block = Block::bordered().title(" Keybindings ");
+    let inner = block.inner(rect); // save inner rectangle size for list, as block.render consumes
+                                   // the block
+    block.render(rect, frame.buffer_mut());
 
     let list = Layout::default()
         .direction(Direction::Vertical)
         .constraints(vec![Constraint::Length(1); keys.len()])
-        .split(block.inner(rect));
+        .split(inner);
 
     for (j, (key, desc)) in keys.iter().enumerate() {
-        Paragraph::new([Text::raw(format!(" {:^17} {}", key, desc))].iter())
-                .render(frame, list[j]);
+        Paragraph::new(Text::raw(format!(" {:^17} {}", key, desc)))
+                .render(list[j], frame.buffer_mut());
     }
 }
 

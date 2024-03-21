@@ -1,9 +1,10 @@
 use termion::event::Key;
-use tui::backend::TermionBackend;
-use tui::layout::{Constraint, Direction, Layout, Rect};
-use tui::style::{Color, Modifier, Style};
-use tui::widgets::{Block, Borders, Gauge, Widget, Text, Paragraph, SelectableList};
-use tui::Terminal;
+use ratatui::backend::TermionBackend;
+use ratatui::layout::{Constraint, Direction, Layout, Rect, Margin};
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::widgets::{Block, Borders, Gauge, Widget, Paragraph};
+use ratatui::text::Text;
+use ratatui::Terminal;
 
 use pulse::context::Context;
 use std::sync::atomic;
@@ -30,9 +31,9 @@ pub fn entered(app: &mut App) {
     app.card_view_data.close_keybinding_popup();
 }
 
-pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
+pub fn draw(frame: &mut ratatui::terminal::Frame, rect: Rect, app: &mut App) {
 
-    let mut constraints: Vec<tui::layout::Constraint> = app.card_list.values().map(|card| Constraint::Length(2 + card.profiles.len() as u16)).collect();
+    let mut constraints: Vec<ratatui::layout::Constraint> = app.card_list.values().map(|card| Constraint::Length(2 + card.profiles.len() as u16)).collect();
     constraints.push(Constraint::Min(0));
 
     let chunks = Layout::default()
@@ -50,19 +51,20 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
             Style::default()
         };
 
-        let mut block = Block::default()
-            .title(&title)
-            .title_style(title_style)
-            .borders(Borders::ALL);
+        let block = Block::bordered()
+            .title(title)
+            .title_style(title_style);
         // .border_style(Style::default().fg(Color::White))
         // .style(Style::default().bg(Color::Black))
-        block.render(frame, chunks[i]);
+        let inner = block.inner(chunks[i]); // save inner rectangle size for list, as block.render
+                                            // consumes the block
+        block.render(chunks[i], frame.buffer_mut());
 
         let list = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![Constraint::Length(1); card.profiles.len()])
             // .split(chunks[i]);
-            .split(block.inner(chunks[i]));
+            .split(inner);
 
         for (j, profile) in card.profiles.iter().enumerate() {
             let mut style = Style::default();
@@ -76,9 +78,9 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
                     style = Style::default().fg(Color::Green)
                 }
             }
-            Paragraph::new([Text::raw(format!(" {}", profile.display_name()))].iter())
+            Paragraph::new(Text::raw(format!(" {}", profile.display_name())))
                 .style(style)
-                .render(frame, list[j]);
+                .render(list[j], frame.buffer_mut());
             }
 
         // let profile_names: Vec<&str> = card.profiles.iter().map(|p| p.description.as_ref()).collect();
@@ -95,7 +97,7 @@ pub fn draw<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect:
     }
 }
 
-pub fn draw_keybinding_popup<T: tui::backend::Backend>(frame: &mut tui::terminal::Frame<T>, rect: Rect, app: &mut App) {
+pub fn draw_keybinding_popup(frame: &mut ratatui::terminal::Frame, rect: Rect, app: &mut App) {
 
     let keys = vec![
         ( "F1 through F5", "Change tab"),
@@ -108,21 +110,23 @@ pub fn draw_keybinding_popup<T: tui::backend::Backend>(frame: &mut tui::terminal
         ( "Return", "Confirm profile"),
     ];
 
-    let rect = rect.inner(4);
+    let rect = rect.inner(&Margin::new(4, 4));
     crate::draw::ClearingWidget::default()
-        .render(frame, rect);
+        .render(rect, frame.buffer_mut());
 
-    let mut block = Block::default().title(" Keybindings ").borders(Borders::ALL);
-    block.render(frame, rect);
+    let block = Block::bordered().title(" Keybindings ");
+    let inner = block.inner(rect); // save inner rectangle size for list, as block.render consumes
+                                   // the block
+    block.render(rect, frame.buffer_mut());
 
     let list = Layout::default()
         .direction(Direction::Vertical)
         .constraints(vec![Constraint::Length(1); keys.len()])
-        .split(block.inner(rect));
+        .split(inner);
 
     for (j, (key, desc)) in keys.iter().enumerate() {
-        Paragraph::new([Text::raw(format!(" {:^17} {}", key, desc))].iter())
-                .render(frame, list[j]);
+        Paragraph::new(Text::raw(format!(" {:^17} {}", key, desc)))
+                .render(list[j], frame.buffer_mut());
     }
 }
 

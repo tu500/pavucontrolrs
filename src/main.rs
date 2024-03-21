@@ -766,7 +766,7 @@ fn handle_key_event(key: Key, app: &Mutex<App>, context: &Mutex<Context>) {
             {
                 let app = &mut *app; // XXX
                 let s_list = &app.source_list;
-                app.source_output_list.filtered_select_next_else_prev(|x| 
+                app.source_output_list.filtered_select_next_else_prev(|x|
                     !(x.source_index == 0xffffffff || s_list.get(x.source_index).map(|x| x.is_monitor()).unwrap_or(false))
                 );
             }
