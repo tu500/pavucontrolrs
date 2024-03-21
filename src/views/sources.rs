@@ -43,6 +43,15 @@ pub fn draw(frame: &mut ratatui::terminal::Frame, rect: Rect, app: &mut App) {
         .constraints(constraints)
         .split(rect);
 
+    if app.hide_monitors {
+        // make sure a none-filtered item is selected
+        if let Some(item) = app.source_list.get_selected() {
+            if item.is_monitor() {
+                app.source_list.filtered_select_next_else_prev(|x| !x.is_monitor());
+            }
+        }
+    }
+
     for (i, source) in app.source_list.filtered_values(|x| !(x.is_monitor() && app.hide_monitors)).enumerate() {
         let vol = source.volume.avg();
         let volume_ratio = vol.0 as f64 / pulse::volume::Volume::NORMAL.0 as f64;

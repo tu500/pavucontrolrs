@@ -55,6 +55,16 @@ pub fn draw(frame: &mut ratatui::terminal::Frame, rect: Rect, app: &mut App) {
         .constraints(constraints)
         .split(rect);
 
+    if app.hide_monitors {
+        // make sure a none-filtered item is selected
+        if let Some(item) = app.source_output_list.get_selected() {
+            if item.source_index == 0xffffffff || app.source_list.get(item.source_index).map(|x| x.is_monitor()).unwrap_or(false) {
+                let s_list = &app.source_list;
+                app.source_output_list.filtered_select_next_else_prev(|x| !(x.source_index == 0xffffffff || s_list.get(x.source_index).map(|x| x.is_monitor()).unwrap_or(false)));
+            }
+        }
+    }
+
     for (i, stream) in app.source_output_list.filtered_values(
         |x| !((x.source_index == 0xffffffff || app.source_list.get(x.source_index).map(|x| x.is_monitor()).unwrap_or(false)) && app.hide_monitors)
     ).enumerate() {
