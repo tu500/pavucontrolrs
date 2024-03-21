@@ -306,8 +306,8 @@ impl ProfileInfo {
     }
 }
 
-impl From<&introspect::CardProfileInfo2<'_>> for ProfileInfo {
-    fn from(info: &introspect::CardProfileInfo2) -> ProfileInfo {
+impl From<&introspect::CardProfileInfo<'_>> for ProfileInfo {
+    fn from(info: &introspect::CardProfileInfo) -> ProfileInfo {
         ProfileInfo {
             name:        String::from(info.name.as_ref().expect("CardProfileInfo2 without name").as_ref()),
             description: String::from(info.description.as_ref().expect("CardProfileInfo2 without description").as_ref()),
